@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,55 +10,84 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        .stats {
-            margin-top: 10px;
+
+        h1,
+        h2 {
+            margin-bottom: 10px;
         }
-        .stat {
-            margin: 10px 0;
+
+        .stats,
+        .processes,
+        .users,
+        .logs {
+            margin-top: 20px;
         }
-    .error {
-        margin: 10px 0;
-        color: red;
-    }
+
+        .stat,
+        .process,
+        .log,
+        .user {
+            margin: 5px 0;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+
+        select {
+            margin-left: 10px;
+        }
     </style>
 </head>
+
 <body>
     <h1>Real-time Server Statistics</h1>
-    <div class="error" id="error"></div>
+    <div id="error" class="error"></div>
+
     <div class="stats" id="stats"></div>
+
+    <div class="processes">
+        <h2>Process List</h2>
+        <label for="sort">Sort By:</label>
+        <select id="sort" onchange="requestStats()">
+            <option value="cpu">CPU</option>
+            <option value="memory">Memory</option>
+            <option value="pid">PID</option>
+        </select>
+        <div id="process-list"></div>
+    </div>
+
+    <div class="users">
+        <h2>Logged-in Users</h2>
+        <div id="user-list"></div>
+    </div>
+
+    <div class="logs">
+        <h2>System Logs (Last 50 Lines)</h2>
+        <div id="log-list"></div>
+    </div>
+
     <script>
         const server_url = 'wss://' + location.host + location.pathname.replace('monitor', 'ws');
         const statsDiv = document.getElementById('stats');
+        const processDiv = document.getElementById('process-list');
+        const userDiv = document.getElementById('user-list');
+        const logDiv = document.getElementById('log-list');
         const errorDiv = document.getElementById('error');
         const ws = new WebSocket(server_url);
 
-        ws.onconnect = () => {
-            statsDiv.innerHTML = `<div class="stat">Connected</div>`;
-        };
+        ws.onopen = () => requestStats();
 
-        ws.onerror = (e) => {
-            errorDiv.innerHTML = `<div class="stat" style="color:red;">Error: ${e.message}</div>`;
-        };
+        ws.onerror = (error) => errorDiv.innerText = "WebSocket connection error. Please check the server.";
 
         ws.onmessage = (event) => {
             const message = JSON.parse(event.data);
-            console.log('message', message);
-
-	    const messageType = message[0];
-            if (messageType === 'stats') {
-                updateStats(message[1]);
-            } else {
-                errorDiv.innerHTML = `<div class="stat" style="color:red;">Error: ${message}</div>`;
-            }
+            if (message[0] === 'stats') updateStats(message[1]);
+            else if (message[0] === 'error') errorDiv.innerText = `Error: ${message[1]}`;
         };
 
-        ws.onclose = () => {
-            statsDiv.innerHTML = `<div class="stat" style="color:red;">Connection closed</div>`;
-        };
-
-        function getStats() {
-            ws.send('stats');
-        }
+        ws.onclose = () => errorDiv.innerText = "WebSocket connection closed.";
 
         function updateStats(stats) {
             statsDiv.innerHTML = `
@@ -66,18 +96,33 @@
                     ${((stats.memory.used / stats.memory.total) * 100).toFixed(2)}% 
                     (${(stats.memory.used / 1e9).toFixed(2)} GB / ${(stats.memory.total / 1e9).toFixed(2)} GB)
                 </div>
-                <div class="stat"><strong>Disk Usage:</strong> 
-                    ${stats.disk.percent}% 
+                <div class="stat"><strong>Disk Usage:</strong> ${stats.disk.percent}% 
                     (${(stats.disk.used / 1e9).toFixed(2)} GB / ${(stats.disk.total / 1e9).toFixed(2)} GB)
                 </div>
-                <div class="stat"><strong>Load Average:</strong> 
-                    1m: ${stats.load_avg[0].toFixed(1)}, 5m: ${stats.load_avg[1].toFixed(1)}, 15m: ${stats.load_avg[2].toFixed(1)}
-                </div>
+                <div class="stat"><strong>System Uptime:</strong> ${stats.uptime}</div>
             `;
+
+            processDiv.innerHTML = stats.processes.map(proc => `
+                <div class="process">PID: ${proc.pid}, Name: ${proc.name}, 
+                CPU: ${proc.cpu_percent.toFixed(1)}%, Memory: ${proc.memory_percent.toFixed(2)}%</div>
+            `).join('');
+
+            userDiv.innerHTML = stats.logged_users.length > 0
+                ? stats.logged_users.map(user => `<div class="user">${user}</div>`).join('')
+                : `<div class="user">No logged-in users</div>`;
+
+            logDiv.innerHTML = stats.logs.length > 0
+                ? stats.logs.map(log => `<div class="log">${log}</div>`).join('')
+                : `<div class="log">No logs available</div>`;
         }
 
-        // Get stats every second
-        setInterval(getStats, 1000);
+        function requestStats() {
+            const sortBy = document.getElementById('sort').value;
+            ws.send(JSON.stringify({ action: "stats", sort: sortBy }));
+        }
+
+        setInterval(requestStats, 3000);
     </script>
 </body>
+
 </html>
