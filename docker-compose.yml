@@ -1,9 +1,10 @@
-version: '3.8'
-
+version: '3.9'
 services:
-  server_monitor:
+  app:
     build: .
     ports:
-      - "8765:8765"   # Sunucunun portunu dışarı aç
+      - "8765:8765"
     volumes:
-      - .:/app        # Proje dosyalarını container içine eşleştir
+      - .:/app
+    pid: "host"  
+    restart: always

@@ -1,18 +1,8 @@
-# Python resmi imajını kullan
-FROM python:3.9
 
-# Çalışma dizinini belirle
+FROM python:3.9-slim
 WORKDIR /app
-
-# Bağımlılıkları yükle
-COPY requirements.txt requirements.txt
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Proje dosyalarını kopyala
 COPY . .
-
-# Gerekli portu aç
 EXPOSE 8765
-
-# Sunucuyu başlat
-CMD ["python", "server.py"]
+CMD ["python", "src/server.py"]
