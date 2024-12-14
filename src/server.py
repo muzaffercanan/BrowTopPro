@@ -94,17 +94,6 @@ async def get_system_stats(sort_by="cpu"):
     return stats
 
 
-    stats = {
-        "cpu": psutil.cpu_percent(interval=1),
-        "memory": psutil.virtual_memory()._asdict(),
-        "disk": psutil.disk_usage("C:\\" if platform.system() == "Windows" else "/")._asdict(),
-        "load_avg": "Not supported on Windows" if platform.system() == "Windows" else psutil.getloadavg(),
-        "processes": sorted(process_list, key=lambda x: x.get(sort_by, 0), reverse=True),
-        "uptime": get_uptime(),
-        "logged_users": get_logged_users(),
-        "logs": get_system_logs()
-    }
-    return stats
 
 # WebSocket Endpoint for real-time stats
 async def send_stats(request):
