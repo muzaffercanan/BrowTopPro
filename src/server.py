@@ -9,6 +9,7 @@ import subprocess
 from aiohttp import web
 import time
 import struct
+import struct
 
 # Username and Password
 USERNAME = "admin"
@@ -21,6 +22,7 @@ async def auth_middleware(app, handler):
         if not auth_header or not auth_header.startswith("Basic "):
             return web.Response(status=401, headers={"WWW-Authenticate": 'Basic realm="Secure Area"'})
 
+
         auth_decoded = base64.b64decode(auth_header.split(" ")[1]).decode("utf-8")
         user, pwd = auth_decoded.split(":")
         if user != USERNAME or pwd != PASSWORD:
@@ -30,6 +32,14 @@ async def auth_middleware(app, handler):
 
 # Fetch system logs
 def get_system_logs():
+    log_path = "/host/var/log/syslog"  # Mounted from host
+    try:
+        with open(log_path, "r") as file:
+            return file.readlines()[-50:]  # Last 50 lines
+    except FileNotFoundError:
+        return ["System log file not found"]
+    except Exception as e:
+        return [f"Error reading system logs: {e}"]
     log_path = "/host/var/log/syslog"  # Mounted from host
     try:
         with open(log_path, "r") as file:
@@ -55,6 +65,7 @@ def get_logged_users():
 
     return users if users else ["No logged-in users"]
 
+    return users if users else ["No logged-in users"]
 
 # Get system uptime
 def get_uptime():
@@ -78,10 +89,16 @@ async def get_system_stats(sort_by="cpu"):
         disk_info = psutil.disk_usage("/")
     except Exception as e:
         disk_info = {"error": f"Disk usage fetch failed: {e}"}
+    sorted_processes = sorted(process_list, key=lambda x: x.get(sort_by, 0), reverse=True)
+    try:
+        disk_info = psutil.disk_usage("/")
+    except Exception as e:
+        disk_info = {"error": f"Disk usage fetch failed: {e}"}
 
     stats = {
         "cpu": psutil.cpu_percent(interval=1),
         "memory": psutil.virtual_memory()._asdict(),
+        "disk": disk_info if isinstance(disk_info, dict) else disk_info._asdict(),
         "disk": disk_info if isinstance(disk_info, dict) else disk_info._asdict(),
         "load_avg": "Not supported on Windows" if platform.system() == "Windows" else psutil.getloadavg(),
         "processes": sorted_processes,
@@ -102,7 +119,20 @@ async def send_stats(request):
                 req = json.loads(msg.data)
                 action = req.get("action", "stats")
                 sort_by = req.get("sort", "cpu")
+    try:
+        async for msg in ws:
+            if msg.type == web.WSMsgType.text:
+                req = json.loads(msg.data)
+                action = req.get("action", "stats")
+                sort_by = req.get("sort", "cpu")
 
+                if action == "stats":
+                    data = await get_system_stats(sort_by)
+                    await ws.send_str(json.dumps(["stats", data]))
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
+        print("WebSocket connection closed.")
                 if action == "stats":
                     data = await get_system_stats(sort_by)
                     await ws.send_str(json.dumps(["stats", data]))
@@ -118,12 +148,23 @@ async def monitor(request):
     if not path.exists():
         print(f"Monitor file not found at: {path}")
         return web.Response(status=404, text="Monitor file not found.")
+    path = pathlib.Path(__file__).parent.joinpath("monitor.html")
+    if not path.exists():
+        print(f"Monitor file not found at: {path}")
+        return web.Response(status=404, text="Monitor file not found.")
     return web.FileResponse(path)
 
 # SSL Configuration
 def create_ssl_context():
     cert_file = pathlib.Path(__file__).parents[1].joinpath("cert/localhost.crt")
     key_file = pathlib.Path(__file__).parents[1].joinpath("cert/localhost.key")
+    try:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(cert_file, key_file)
+        return ssl_context
+    except Exception as e:
+        print(f"Error loading SSL certificates: {e}")
+        raise
     try:
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ssl_context.load_cert_chain(cert_file, key_file)
@@ -146,4 +187,5 @@ def run():
 if __name__ == "__main__":
     print("Starting the server...")
     run()
+
 
