@@ -1,10 +1,15 @@
-version: '3.9'
+version: "3.9"
+
 services:
   app:
     build: .
+    container_name: browtoppro-container
     ports:
-      - "8765:8765"
+      - "1032:8765"  # Map user ID port (1032) to container port (8765)
     volumes:
-      - .:/app
-    pid: "host"  
+      - /var/run:/host/var/run:ro  # Mount utmp file for logged-in users
+      - /var/log:/host/var/log:ro
+    privileged: true  # To get system-level information
+    pid: "host"  # Share the process ID namespace with the host
     restart: always
+

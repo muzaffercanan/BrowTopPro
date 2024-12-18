@@ -51,15 +51,14 @@
         <h1>Real-time Server Statistics</h1>
         <div id="error" class="error"></div>
 
-        <!-- Genel İstatistikler -->
+        <!-- General Statistics -->
         <div class="row">
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">CPU Usage</h5>
                         <div class="progress">
-                            <div id="cpu-progress" class="progress-bar bg-success" role="progressbar"
-                                style="width: 0%;">0%</div>
+                            <div id="cpu-progress" class="progress-bar bg-success" role="progressbar" style="width: 0%;">0%</div>
                         </div>
                     </div>
                 </div>
@@ -69,8 +68,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Memory Usage</h5>
                         <div class="progress">
-                            <div id="memory-progress" class="progress-bar bg-info" role="progressbar"
-                                style="width: 0%;">0%</div>
+                            <div id="memory-progress" class="progress-bar bg-info" role="progressbar" style="width: 0%;">0%</div>
                         </div>
                     </div>
                 </div>
@@ -80,8 +78,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Disk Usage</h5>
                         <div class="progress">
-                            <div id="disk-progress" class="progress-bar bg-warning" role="progressbar"
-                                style="width: 0%;">0%</div>
+                            <div id="disk-progress" class="progress-bar bg-warning" role="progressbar" style="width: 0%;">0%</div>
                         </div>
                     </div>
                 </div>
@@ -122,7 +119,8 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const server_url = 'wss://' + location.host + location.pathname.replace('monitor', 'ws');
+        const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const server_url = protocol + location.host + location.pathname.replace('monitor', 'ws');
         const cpuProgress = document.getElementById('cpu-progress');
         const memoryProgress = document.getElementById('memory-progress');
         const diskProgress = document.getElementById('disk-progress');
@@ -133,8 +131,14 @@
         const ws = new WebSocket(server_url);
 
         ws.onopen = () => requestStats();
-        ws.onerror = () => errorDiv.innerText = "WebSocket connection error. Please check the server.";
-        ws.onclose = () => errorDiv.innerText = "WebSocket connection closed.";
+        ws.onerror = (error) => {
+            errorDiv.innerText = `WebSocket error: ${error.message || 'Unknown error'}`;
+            console.error('WebSocket Error:', error);
+        };
+        ws.onclose = (event) => {
+            errorDiv.innerText = `WebSocket closed: ${event.reason || 'No reason provided'}`;
+            console.warn('WebSocket Closed:', event);
+        };
 
         ws.onmessage = (event) => {
             const message = JSON.parse(event.data);
@@ -143,31 +147,25 @@
         };
 
         function updateStats(stats) {
-            // CPU Progress
             cpuProgress.style.width = `${stats.cpu}%`;
             cpuProgress.innerText = `${stats.cpu}%`;
 
-            // Memory Progress
             const memoryPercent = ((stats.memory.used / stats.memory.total) * 100).toFixed(2);
             memoryProgress.style.width = `${memoryPercent}%`;
             memoryProgress.innerText = `${memoryPercent}%`;
 
-            // Disk Progress
             diskProgress.style.width = `${stats.disk.percent}%`;
             diskProgress.innerText = `${stats.disk.percent}%`;
 
-            // Process List
             processDiv.innerHTML = stats.processes.map(proc => `
                 <div class="process">PID: ${proc.pid}, Name: ${proc.name}, 
                 CPU: ${proc.cpu_percent.toFixed(1)}%, Memory: ${proc.memory_percent.toFixed(2)}%</div>
             `).join('');
 
-            // Logged-in Users
             userDiv.innerHTML = stats.logged_users.length > 0
                 ? stats.logged_users.map(user => `<div>${user}</div>`).join('')
                 : `<div>No logged-in users</div>`;
 
-            // System Logs
             logDiv.innerHTML = stats.logs.length > 0
                 ? stats.logs.map(log => `<div>${log}</div>`).join('')
                 : `<div>No logs available</div>`;
@@ -183,3 +181,4 @@
 </body>
 
 </html>
+
