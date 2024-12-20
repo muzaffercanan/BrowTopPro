@@ -53,7 +53,7 @@
 
         <!-- General Statistics -->
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">CPU Usage</h5>
@@ -63,7 +63,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Memory Usage</h5>
@@ -73,13 +73,21 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Disk Usage</h5>
                         <div class="progress">
                             <div id="disk-progress" class="progress-bar bg-warning" role="progressbar" style="width: 0%;">0%</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">System Uptime</h5>
+                        <div id="uptime-display">Loading...</div>
                     </div>
                 </div>
             </div>
@@ -124,6 +132,7 @@
         const cpuProgress = document.getElementById('cpu-progress');
         const memoryProgress = document.getElementById('memory-progress');
         const diskProgress = document.getElementById('disk-progress');
+        const uptimeDisplay = document.getElementById('uptime-display');
         const processDiv = document.getElementById('process-list');
         const userDiv = document.getElementById('user-list');
         const logDiv = document.getElementById('log-list');
@@ -157,6 +166,8 @@
             diskProgress.style.width = `${stats.disk.percent}%`;
             diskProgress.innerText = `${stats.disk.percent}%`;
 
+            uptimeDisplay.innerText = stats.uptime || "Unavailable";
+
             processDiv.innerHTML = stats.processes.map(proc => `
                 <div class="process">PID: ${proc.pid}, Name: ${proc.name}, 
                 CPU: ${proc.cpu_percent.toFixed(1)}%, Memory: ${proc.memory_percent.toFixed(2)}%</div>
@@ -181,4 +192,3 @@
 </body>
 
 </html>
-

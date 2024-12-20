@@ -64,9 +64,15 @@ def get_logged_users():
 def get_uptime():
     boot_time = psutil.boot_time()
     uptime_seconds = int(time.time() - boot_time)
-    uptime_hours, remainder = divmod(uptime_seconds, 3600)
-    uptime_minutes, _ = divmod(remainder, 60)
-    return f"{uptime_hours} hours, {uptime_minutes} minutes"
+    days, remainder = divmod(uptime_seconds, 86400)  # 86400 seconds in a day
+    hours, remainder = divmod(remainder, 3600)
+    minutes, _ = divmod(remainder, 60)
+    
+    if days > 0:
+        return f"{days} days, {hours} hours, {minutes} minutes"
+    else:
+        return f"{hours} hours, {minutes} minutes"
+
 
 # Collect system stats
 async def get_system_stats(sort_by="cpu"):
