@@ -2,3 +2,9 @@ cert/localhost*
 bin/
 lib/
 pyvenv.cfg
+--name
+--privileged
+-v
+-p
+src/.server.py.swp
+browtoppro-app
