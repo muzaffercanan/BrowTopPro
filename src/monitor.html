@@ -9,17 +9,25 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f8f8f8;
         }
 
         h1 {
             margin-top: 20px;
             text-align: center;
+            color: #b8860b;
         }
 
         .card {
             margin: 15px 0;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background-color: #fffff0;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .progress {
@@ -58,7 +66,8 @@
                     <div class="card-body">
                         <h5 class="card-title">CPU Usage</h5>
                         <div class="progress">
-                            <div id="cpu-progress" class="progress-bar bg-success" role="progressbar" style="width: 0%;">0%</div>
+                            <div id="cpu-progress" class="progress-bar bg-success" role="progressbar"
+                                style="width: 0%;">0%</div>
                         </div>
                     </div>
                 </div>
@@ -68,7 +77,8 @@
                     <div class="card-body">
                         <h5 class="card-title">Memory Usage</h5>
                         <div class="progress">
-                            <div id="memory-progress" class="progress-bar bg-info" role="progressbar" style="width: 0%;">0%</div>
+                            <div id="memory-progress" class="progress-bar bg-info" role="progressbar"
+                                style="width: 0%;">0%</div>
                         </div>
                     </div>
                 </div>
@@ -78,7 +88,8 @@
                     <div class="card-body">
                         <h5 class="card-title">Disk Usage</h5>
                         <div class="progress">
-                            <div id="disk-progress" class="progress-bar bg-warning" role="progressbar" style="width: 0%;">0%</div>
+                            <div id="disk-progress" class="progress-bar bg-warning" role="progressbar"
+                                style="width: 0%;">0%</div>
                         </div>
                     </div>
                 </div>
@@ -168,10 +179,28 @@
 
             uptimeDisplay.innerText = stats.uptime || "Unavailable";
 
-            processDiv.innerHTML = stats.processes.map(proc => `
-                <div class="process">PID: ${proc.pid}, Name: ${proc.name}, 
-                CPU: ${proc.cpu_percent.toFixed(1)}%, Memory: ${proc.memory_percent.toFixed(2)}%</div>
-            `).join('');
+            processDiv.innerHTML = `
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">PID</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">CPU (%)</th>
+                            <th scope="col">Memory (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${stats.processes.map(proc => `
+                            <tr>
+                                <td>${proc.pid}</td>
+                                <td>${proc.name}</td>
+                                <td>${proc.cpu_percent.toFixed(1)}</td>
+                                <td>${proc.memory_percent.toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
 
             userDiv.innerHTML = stats.logged_users.length > 0
                 ? stats.logged_users.map(user => `<div>${user}</div>`).join('')
